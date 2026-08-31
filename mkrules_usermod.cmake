@@ -5,6 +5,11 @@ find_program(AWK awk mawk gawk)
 
 set(LV_BINDINGS_DIR ${CMAKE_CURRENT_LIST_DIR})
 
+set(LV_INTERNAL_HEADERS
+    lv_obj_style_internal.h
+    lv_obj_style_internal_gen.h
+)
+
 # first check
 if(NOT DEFINED LV_CONF_PATH)
     set(LV_CONF_PATH ${LV_BINDINGS_DIR}/lv_conf.h)
@@ -126,6 +131,8 @@ function(all_lv_bindings)
             ${LVGL_HEADERS}
         GEN_OPTIONS
             -M lvgl -MP lv
+        FILTER
+            ${LV_INTERNAL_HEADERS}
     )
 
         

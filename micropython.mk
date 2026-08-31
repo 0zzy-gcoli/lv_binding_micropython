@@ -76,6 +76,12 @@ CFLAGS_USERMOD += -DLV_CONF_PATH='"$(LV_CONF_PATH)"' -Wno-deprecated-declaration
 # CFLAGS DEBUG
 $(info CFLAGS_USERMOD is $(CFLAGS_USERMOD))
 
+AWK ?= awk
+
+LV_INTERNAL_HEADERS = lv_obj_style_internal.h lv_obj_style_internal_gen.h
+LV_HASH := \#
+LV_PP_FILTER = $(AWK) '$$1=="$(LV_HASH)"{p=($(foreach h,$(LV_INTERNAL_HEADERS),$$3!~"$(h)" &&) 1)} p{print}'
+
 $(LVGL_MPY): $(ALL_LVGL_SRC) $(LVGL_BINDING_DIR)/gen/gen_mpy.py 
 	$(ECHO) "LVGL-GEN $@"
 	$(Q)mkdir -p $(dir $@)
@@ -84,7 +90,7 @@ $(LVGL_MPY): $(ALL_LVGL_SRC) $(LVGL_BINDING_DIR)/gen/gen_mpy.py
 		-I $(LVGL_BINDING_DIR)/pycparser/utils/fake_libc_include \
 		-I $(LVGL_BINDING_DIR)/stubs/include \
 		$(CFLAGS_USERMOD) \
-		$(LVGL_DIR)/lvgl_private.h > $(LVGL_PP)
+		$(LVGL_DIR)/lvgl_private.h | $(LV_PP_FILTER) > $(LVGL_PP)
 	$(Q)$(PYTHON) $(LVGL_BINDING_DIR)/gen/gen_mpy.py -M lvgl -MP lv -MD $(LVGL_MPY_METADATA) -E $(LVGL_PP) $(LVGL_DIR)/lvgl.h > $@
 
 .PHONY: LVGL_MPY
