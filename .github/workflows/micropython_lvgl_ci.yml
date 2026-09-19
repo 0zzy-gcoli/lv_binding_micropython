@@ -110,10 +110,13 @@ jobs:
       run: ./imageconvert.py api/*.bin
     
     - name: Upload Firmware Artifact
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-          name: esp32s3-lvgl-firmware
-          path: ports/esp32/build-*/firmware.bin
+          name: esp32-lvgl-firmware
+          path: |
+            ports/esp32/build*/**/*.bin
+            ports/esp32/build*/*.bin
       
     # TODO: Fix run.sh catchsegv not found command
     - name: Run tests      
