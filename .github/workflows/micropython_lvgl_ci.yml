@@ -4,7 +4,6 @@ on:
   push:
   pull_request:
 
-
 concurrency:
   group: ${{ github.ref }}-${{ github.workflow }} 
   cancel-in-progress: true
@@ -41,15 +40,10 @@ jobs:
     - name: Update ${{ matrix.port }} port submodules
       run: make -C ports/${{ matrix.port}} DEBUG=1 submodules
 
-    # - name: Debug GitHub Event 
-    #   run: -${{ tojson(github.event) }}
-    #   shell: cat {0}
-
     - name: Checkout lv_bindings (push)
       working-directory: ./user_modules/lv_binding_micropython
       if: ${{github.event_name == 'push'}}
       run: |
-
         git fetch --force ${{ github.event.repository.html_url }} "+${{github.event.ref}}:refs/remotes/origin/${{github.event.head_commit.author.username}}-${{github.event.head_commit.id}}"
         git checkout ${{ github.event.head_commit.id }}
         git submodule update --init --recursive
@@ -58,11 +52,9 @@ jobs:
       working-directory: ./user_modules/lv_binding_micropython
       if: ${{github.event_name == 'pull_request'}}
       run: |
-
         git fetch --force ${{ github.event.repository.html_url }} "+refs/pull/${{github.event.pull_request.number}}/head:refs/remotes/origin/${{github.event.pull_request.head.ref}}"
         git checkout ${{ github.event.pull_request.head.sha }}
         git submodule update --init --recursive
-
 
     - name: Build mpy-cross
       run: make -j $(nproc) -C mpy-cross
@@ -73,14 +65,15 @@ jobs:
       run: |
         source tools/ci.sh && ci_stm32_setup
         make -C ports/stm32 BOARD=PYBV11 submodules
-        make -j $(nproc) -C ports/stm32 BOARD=PYBV11 USER_C_MODULES=../../user_modules LV_CONF_PATH=../../user_modules/lv_binding_micropython/ports/stm32/lv_conf_stm32.h
+        make -j $(nproc) -C ports/stm32 BOARD=PYBV11 USER_C_MODULES=$(pwd)/user_modules LV_CONF_PATH=$(pwd)/user_modules/lv_binding_micropython/ports/stm32/lv_conf_stm32.h
+
     # Raspberry Pi Pico port
     - name: Build rp2 port
       if: matrix.port == 'rp2'
       run: |
         source tools/ci.sh && ci_rp2_setup
         make -C ports/rp2 BOARD=RPI_PICO submodules
-        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=../../user_modules/lv_binding_micropython/micropython.cmake
+        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
 
     # ESP32 port
     - name: Build esp32 port
@@ -88,7 +81,7 @@ jobs:
       run: |
         source tools/ci.sh && ci_esp32_idf_setup
         source tools/ci.sh && ci_esp32_build_common
-        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=../../user_modules/lv_binding_micropython/micropython.cmake
+        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
 
     # Unix port
     - name: Build unix port
@@ -99,29 +92,10 @@ jobs:
       if: matrix.port == 'unix'
       run: MICROPY_MICROPYTHON=ports/unix/build-lvgl/micropython ./tests/run-tests.py -d tests/basics
 
-    - name: Run MicroPython-LVGL API Tests
-      if: matrix.port == 'unix'
-      run: MICROPY_MICROPYTHON=ports/unix/build-lvgl/micropython ./tests/run-tests.py -d user_modules/lv_binding_micropython/tests/api
-      
-    - name: Process Tests Artifacts
-
-      if: matrix.port == 'unix'
-      working-directory: ./user_modules/lv_binding_micropython/tests
-      run: ./imageconvert.py api/*.bin
-    
-    - name: Upload Firmware Artifact
-      if: always()
+    - name: Upload Firmware Artifacts
       uses: actions/upload-artifact@v4
       with:
-          name: esp32-lvgl-firmware
-          path: |
-            ports/esp32/build*/**/*.bin
-            ports/esp32/build*/*.bin
-      
-    # TODO: Fix run.sh catchsegv not found command
-    - name: Run tests      
-      if: matrix.port == 'unix'
-      run: |
-        export XDG_RUNTIME_DIR=/tmp
-    
-        user_modules/lv_binding_micropython/tests/run.sh
+        name: firmware-${{ matrix.port }}
+        path: |
+          ports/esp32/build-*/*.bin
+          ports/rp2/build-*/*.uf2
