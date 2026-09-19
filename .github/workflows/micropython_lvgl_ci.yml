@@ -73,7 +73,7 @@ jobs:
       run: |
         source tools/ci.sh && ci_rp2_setup
         make -C ports/rp2 BOARD=RPI_PICO submodules
-        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
+        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython
 
     # ESP32 port
     - name: Build esp32 port
@@ -81,7 +81,7 @@ jobs:
       run: |
         source tools/ci.sh && ci_esp32_idf_setup
         source tools/ci.sh && ci_esp32_build_common
-        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
+        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython
 
     # Unix port
     - name: Build unix port
