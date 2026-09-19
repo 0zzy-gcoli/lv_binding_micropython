@@ -1,4 +1,3 @@
-
 # This file is to be given as "make USER_C_MODULES=..." when building Micropython port
 
 # Include LVGL component, ignore KCONFIG
@@ -29,13 +28,7 @@ message(STATUS "LV_CONF_PATH=${LV_CONF_PATH}")
 include(${CMAKE_CURRENT_LIST_DIR}/mkrules_usermod.cmake)
 
 # Add lv_bindings rules
-
 all_lv_bindings()
-
-
-# # # make usermod (target declared by Micropython for all user compiled modules) link to bindings
-# # # this way the bindings (and transitively lvgl_interface) get proper compilation flags
-# target_link_libraries(usermod INTERFACE usermod_lvgl)
 
 if(ESP_PLATFORM)
     idf_build_get_property(LV_IDF_COMPILE_OPTIONS COMPILE_OPTIONS)
@@ -56,29 +49,35 @@ message(STATUS "LV_OPTIMIZATION_FLAGS=${LV_OPTIMIZATION_FLAGS}")
 
 file(GLOB_RECURSE SOURCES ${CMAKE_CURRENT_LIST_DIR}/lvgl/src/*.c)
 
-add_library(lvgl_interface INTERFACE)
-
-target_sources(lvgl_interface INTERFACE ${SOURCES})
-target_compile_options(lvgl_interface INTERFACE ${LV_OPTIMIZATION_FLAGS} ${LV_CFLAGS} -Wno-deprecated-declarations)
-
-# # lvgl bindings target (the mpy module)
-
-add_library(usermod_lvgl INTERFACE)
-target_sources(usermod_lvgl INTERFACE ${LV_SRC})
-target_include_directories(usermod_lvgl INTERFACE ${LV_INCLUDE})
-if (DEFINED LV_CONF_DIR)
-    target_include_directories(usermod_lvgl INTERFACE ${LV_CONF_DIR})
+# Guard target creation to allow multiple inclusions without CMake errors
+if(NOT TARGET lvgl_interface)
+    add_library(lvgl_interface INTERFACE)
+    target_sources(lvgl_interface INTERFACE ${SOURCES})
+    target_compile_options(lvgl_interface INTERFACE ${LV_OPTIMIZATION_FLAGS} ${LV_CFLAGS} -Wno-deprecated-declarations)
 endif()
 
 file(WRITE ${LV_MP} "")
 
-target_link_libraries(usermod_lvgl INTERFACE lvgl_interface)
+if(NOT TARGET usermod_lvgl)
+    add_library(usermod_lvgl INTERFACE)
+    target_sources(usermod_lvgl INTERFACE ${LV_SRC})
+    target_include_directories(usermod_lvgl INTERFACE ${LV_INCLUDE})
+    if (DEFINED LV_CONF_DIR)
+        target_include_directories(usermod_lvgl INTERFACE ${LV_CONF_DIR})
+    endif()
 
-# # # make usermod (target declared by Micropython for all user compiled modules) link to bindings
-# # # this way the bindings (and transitively lvgl_interface) get proper compilation flags
-if (DEFINED LV_CONF_DIR)
-    target_include_directories(usermod INTERFACE ${LV_CONF_DIR})
+    target_link_libraries(usermod_lvgl INTERFACE lvgl_interface)
 endif()
-target_compile_options(usermod INTERFACE -DLV_CONF_PATH="${LV_CONF_PATH}" -Wno-deprecated-declarations)
-target_link_libraries(usermod INTERFACE usermod_lvgl)
 
+# Make usermod link to bindings
+if(TARGET usermod)
+    if (DEFINED LV_CONF_DIR)
+        target_include_directories(usermod INTERFACE ${LV_CONF_DIR})
+    endif()
+    target_compile_options(usermod INTERFACE -DLV_CONF_PATH="${LV_CONF_PATH}" -Wno-deprecated-declarations)
+    
+    get_target_property(USERMOD_LIBS usermod INTERFACE_LINK_LIBRARIES)
+    if(NOT USERMOD_LIBS OR NOT "usermod_lvgl" IN_LIST USERMOD_LIBS)
+        target_link_libraries(usermod INTERFACE usermod_lvgl)
+    endif()
+endif()
