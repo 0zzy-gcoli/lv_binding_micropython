@@ -73,15 +73,15 @@ jobs:
       run: |
         source tools/ci.sh && ci_rp2_setup
         make -C ports/rp2 BOARD=RPI_PICO submodules
-        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython
+        make -j $(nproc) -C ports/rp2 BOARD=RPI_PICO USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
 
-    # ESP32 port
+    # ESP32 port (Explicitly passing micropython.cmake path)
     - name: Build esp32 port
       if: matrix.port == 'esp32'
       run: |
         source tools/ci.sh && ci_esp32_idf_setup
         source tools/ci.sh && ci_esp32_build_common
-        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython
+        make -C ports/esp32 BOARD=ESP32_GENERIC_S3 USER_C_MODULES=$(pwd)/user_modules/lv_binding_micropython/micropython.cmake
 
     # Unix port
     - name: Build unix port
